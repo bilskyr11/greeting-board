@@ -1,11 +1,24 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const DATA_FILE = path.join(__dirname, 'greetings.json');
+
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, uploadDir),
+        filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
+    })
+});
 
 if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
@@ -32,6 +45,30 @@ app.get('/', (req, res) => {
 
 app.get('/api/greetings', (req, res) => {
     res.json(getGreetings());
+});
+
+app.delete('/api/greetings/:id', (req, res) => {
+    const greetings = getGreetings();
+    const filtered = greetings.filter(g => g.id !== parseInt(req.params.id));
+    saveGreetings(filtered);
+    res.json({ success: true });
+});
+
+app.put('/api/greetings/:id', (req, res) => {
+    const { sender, text, image } = req.body;
+    const greetings = getGreetings();
+    const note = greetings.find(g => g.id === parseInt(req.params.id));
+    if (!note) return res.status(404).json({ error: 'לא נמצא' });
+    if (sender !== undefined) note.sender = sender;
+    if (text !== undefined) note.text = text;
+    if (image !== undefined) note.image = image;
+    saveGreetings(greetings);
+    res.json({ success: true });
+});
+
+app.post('/api/upload', upload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'אין קובץ' });
+    res.json({ url: `/public/uploads/${req.file.filename}` });
 });
 
 app.post('/api/greetings/:id/react', (req, res) => {
