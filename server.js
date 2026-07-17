@@ -46,12 +46,13 @@ app.post('/api/greetings/:id/react', (req, res) => {
     res.status(404).json({ error: 'לא נמצא' });
 });
 
-// Green-API webhook - מקבל הודעות מהוואטסאפ
 app.post('/webhook', (req, res) => {
     res.sendStatus(200);
 
     const body = req.body;
-    if (body.typeWebhook !== 'incomingMessageReceived') return;
+    const isIncoming = body.typeWebhook === 'incomingMessageReceived';
+    const isOutgoing = body.typeWebhook === 'outgoingMessageReceived';
+    if (!isIncoming && !isOutgoing) return;
 
     const messageData = body.messageData;
     if (!messageData || messageData.typeMessage !== 'textMessage') return;
@@ -64,7 +65,7 @@ app.post('/webhook', (req, res) => {
         ? text.substring(5).trim()
         : text.substring(5).trim();
 
-    const senderName = body.senderData?.senderName || 'משתתף בקבוצה';
+    const senderName = body.senderData?.senderName || body.senderData?.chatName || 'משתתף בקבוצה';
     const colors = ['yellow', 'blue', 'pink', 'green', 'purple'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -86,7 +87,6 @@ app.post('/webhook', (req, res) => {
     saveGreetings(greetings);
     console.log(`ברכה חדשה מ-${senderName}`);
 
-    // שליחת אישור חזרה לשולח
     const chatId = body.senderData?.chatId;
     if (chatId && process.env.INSTANCE_ID && process.env.API_TOKEN && process.env.API_URL) {
         fetch(`${process.env.API_URL}/waInstance${process.env.INSTANCE_ID}/sendMessage/${process.env.API_TOKEN}`, {
