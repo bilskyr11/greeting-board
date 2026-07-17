@@ -225,7 +225,8 @@
         }
 
         async function deleteGreeting(noteId) {
-            if (!confirm('למחוק את הברכה?')) return;
+            const password = prompt('הכניסי סיסמת מנהל למחיקה:');
+            if (!password) return;
             if (isSimulatorMode()) {
                 greetings = greetings.filter(g => g.id !== noteId);
                 localStorage.setItem('local_greetings', JSON.stringify(greetings));
@@ -233,8 +234,16 @@
                 return;
             }
             try {
-                const response = await fetch(`/api/greetings/${noteId}`, { method: 'DELETE' });
-                if (response.ok) fetchGreetings();
+                const response = await fetch(`/api/greetings/${noteId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                if (response.ok) {
+                    fetchGreetings();
+                } else {
+                    alert('סיסמה שגויה ❌');
+                }
             } catch (err) { console.error(err); }
         }
 

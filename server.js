@@ -48,6 +48,10 @@ app.get('/api/greetings', (req, res) => {
 });
 
 app.delete('/api/greetings/:id', (req, res) => {
+    const { password } = req.body;
+    if (password !== process.env.ADMIN_PASSWORD) {
+        return res.status(403).json({ error: 'סיסמה שגויה' });
+    }
     const greetings = getGreetings();
     const filtered = greetings.filter(g => g.id !== parseInt(req.params.id));
     saveGreetings(filtered);
@@ -83,6 +87,7 @@ app.post('/api/greetings/:id/react', (req, res) => {
     res.status(404).json({ error: 'לא נמצא' });
 });
 
+// Green-API webhook - מקבל הודעות מהוואטסאפ
 app.post('/webhook', (req, res) => {
     res.sendStatus(200);
 
